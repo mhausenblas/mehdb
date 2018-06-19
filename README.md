@@ -19,6 +19,14 @@ $ curl mehdb:9876/get/test
 $ curl mehdb-1.mehdb:9876/get/test
 ```
 
+Clean up:
+
+```bash
+$ kubectl delete statefulset/mehdb
+$ kubectl delete pvc/data-mehdb-0
+$ kubectl delete pvc/data-mehdb-1
+```
+
 ## Local development
 
 Run a leader shard like so:
@@ -44,4 +52,14 @@ Also, you can read from the follower:
 
 ```bash
 $ http localhost:9876/get/abc
+```
+
+If you try to write to the follower, you'll be redirected:
+
+```bash
+$ http PUT localhost:9876/set/abc < test/somedata
+HTTP/1.1 307 Temporary Redirect
+Content-Length: 0
+Date: Tue, 19 Jun 2018 12:28:57 GMT
+Location: http://localhost:9999/set/abc
 ```
