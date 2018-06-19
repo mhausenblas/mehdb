@@ -55,6 +55,7 @@ func main() {
 	r.HandleFunc("/set/{key:[a-z]+}", writedata).Methods("PUT")
 	r.HandleFunc("/get/{key:[a-z]+}", readdata).Methods("GET")
 	r.HandleFunc("/keys", listkeys).Methods("GET")
+	r.HandleFunc("/status", status).Methods("GET")
 	http.Handle("/", r)
 	srv := &http.Server{Handler: r, Addr: "0.0.0.0:" + port}
 	log.Fatal(srv.ListenAndServe())
@@ -165,7 +166,7 @@ func readdata(w http.ResponseWriter, r *http.Request) {
 	key := vars["key"]
 	c, err := ioutil.ReadFile(filepath.Join(datadir, key, "content"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "", http.StatusNotFound)
 		log.Printf("Can't read key %s due to %v", key, err)
 		return
 	}
@@ -184,10 +185,44 @@ func listkeys(w http.ResponseWriter, r *http.Request) {
 	for _, k := range keys {
 		key := k.Name()
 		if !strings.HasPrefix(key, ".") {
-			klist = append(klist, k.Name())
+			if _, err := os.Stat(filepath.Join(datadir, key, "content")); err == nil {
+				klist = append(klist, k.Name())
+			}
 		}
 	}
 	_ = json.NewEncoder(w).Encode(klist)
+}
+
+func status(w http.ResponseWriter, r *http.Request) {
+	level := r.URL.Query().Get("level")
+	switch level {
+	case "full":
+		keys, err := ioutil.ReadDir(datadir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		knum := 0
+		for _, k := range keys {
+			key := k.Name()
+			if !strings.HasPrefix(key, ".") {
+				if _, err := os.Stat(filepath.Join(datadir, key, "content")); err == nil {
+					knum++
+				}
+			}
+		}
+		switch knum {
+		case 0:
+			http.Error(w, "no data", http.StatusInternalServerError)
+			return
+		default:
+			_ = json.NewEncoder(w).Encode(knum)
+			return
+		}
+	default:
+		fmt.Fprint(w, role)
+		return
+	}
 }
 
 func currentns() string {
