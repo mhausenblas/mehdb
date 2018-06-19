@@ -40,15 +40,11 @@ Note: I tested it in OpenShift Online with Kubernetes in version 1.9.
 
 ## Endpoints
 
+`/get/$KEY` … a HTTP `GET` at this endpoint retrieves the payload available under the key `$KEY` or a `404` if the key does not exist.
 
-`/get/$KEY` … A HTTP `GET` at this endpoint retrieves the payload available under the key `$KEY` or a `404` if it doesn't exist.
+`/set/$KEY` … a HTTP `PUT` at this endpoint stores the payload provided under the key `$KEY`.
 
-
-`/set/$KEY` … A HTTP `PUT` at this endpoint stores the payload provided under the key `$KEY`.
-
-
-`/status` … by default return `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns the number of keys it can serve, which can be used for a readiness probe.
-
+`/status` … by default returns a `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns a `2000` and the number of keys it can serve, which can be used for a readiness probe.
 
 ## Local development
 
