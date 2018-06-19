@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	leaderShard  = "meh-shard-0"
+	leaderShard  = "mehdb-0"
 	roleLeader   = "leader"
 	roleFollower = "follower"
 )
@@ -50,7 +50,7 @@ func main() {
 	}
 	log.Printf("mehdb serving from %v:%v using %v as the data directory", host, port, datadir)
 	role = discover(host)
-	go syncdata()
+	go syncdata(port)
 	r := mux.NewRouter()
 	r.HandleFunc("/set/{key:[a-z]+}", writedata).Methods("PUT")
 	r.HandleFunc("/get/{key:[a-z]+}", readdata).Methods("GET")
@@ -71,12 +71,13 @@ func discover(host string) string {
 	}
 }
 
-func syncdata() {
+func syncdata(port string) {
 	if role == roleLeader {
 		return
 	}
 	client := &http.Client{Timeout: 5 * time.Second}
-	url := "http://" + leaderShard + "/keys"
+	ns := currentns()
+	url := "http://" + leaderShard + "." + ns + ":" + port + "/keys"
 	if local := os.Getenv("MEHDB_LOCAL"); local != "" {
 		url = "http://localhost:9999/keys"
 	}
@@ -101,7 +102,7 @@ func syncdata() {
 			if _, err = os.Stat(keydir); os.IsNotExist(err) {
 				_ = os.Mkdir(keydir, os.ModePerm)
 			}
-			kurl := "http://" + leaderShard + "/get/" + k
+			kurl := "http://" + leaderShard + "." + ns + ":" + port + "/get/" + k
 			if local := os.Getenv("MEHDB_LOCAL"); local != "" {
 				kurl = "http://localhost:9999/get/" + k
 			}
@@ -124,8 +125,18 @@ func syncdata() {
 func writedata(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
-	if role == roleFollower {
-		http.Redirect(w, r, "http://"+leaderShard+"/set/"+key, 307)
+	if role == roleFollower { // redirect WRITES to leader
+		port := "9876"
+		if p := os.Getenv("MEHDB_PORT"); p != "" {
+			port = p
+		}
+		// assemble leader FQDN based on pod DNS entry:
+		lurl := "http://" + leaderShard + "." + currentns() + ":" + port + "/set/" + key
+		if local := os.Getenv("MEHDB_LOCAL"); local != "" {
+			lurl = "http://localhost:9999/set/" + key
+		}
+		log.Printf("Redirecting WRITE to %v", lurl)
+		http.Redirect(w, r, lurl, 307)
 		return
 	}
 	defer r.Body.Close()
@@ -177,4 +188,13 @@ func listkeys(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = json.NewEncoder(w).Encode(klist)
+}
+
+func currentns() string {
+	ns := "default"
+	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		currentns, _ := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		ns = string(currentns)
+	}
+	return ns
 }
