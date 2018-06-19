@@ -16,12 +16,24 @@ spec:
     spec:
       containers:
       - name: shard
-        image: quay.io/mhausenblas/mehdb:0.4
+        image: quay.io/mhausenblas/mehdb:0.5
         ports:
         - containerPort: 9876
         env:
         - name: MEHDB_DATADIR
           value: "/mehdbdata"
+        livenessProbe:
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          httpGet:
+            path: /status
+            port: 9876
+        readniessProbe:
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          httpGet:
+            path: /status?level=full
+            port: 9876
         volumeMounts:
         - name: data
           mountPath: /mehdbdata
