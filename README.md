@@ -4,6 +4,8 @@ This is `mehdb`, an educational Kubernetes-native NoSQL data store. It is not me
 
 ## Usage
 
+Deploy it:
+
 ```bash
 $ kubectl create ns mehdb
 $ kubectl -n=mehdb apply -f app.yaml
@@ -19,7 +21,7 @@ $ curl mehdb:9876/get/test
 $ curl mehdb-1.mehdb:9876/get/test
 ```
 
-Scale:
+Scale to 3 shards (1 leader, 2 followers):
 
 ```bash
 $ kubectl scale sts web --replicas=3
@@ -31,6 +33,7 @@ Clean up:
 $ kubectl delete sts/mehdb
 $ kubectl delete pvc/data-mehdb-0
 $ kubectl delete pvc/data-mehdb-1
+$ kubectl delete svc/mehdb
 ```
 
 Note: I tested it in OpenShift Online with Kubernetes in version 1.9.
