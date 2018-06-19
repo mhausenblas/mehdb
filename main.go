@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	leaderShard  = "meh-shard-0"
 	roleLeader   = "leader"
 	roleFollower = "follower"
 )
@@ -42,7 +43,10 @@ func main() {
 		datadir = d
 	}
 	if _, err := os.Stat(datadir); os.IsNotExist(err) {
-		_ = os.Mkdir(datadir, os.ModePerm)
+		errd := os.Mkdir(datadir, os.ModePerm)
+		if errd != nil {
+			log.Printf("Can't create data dir due to %v", err)
+		}
 	}
 	log.Printf("mehdb serving from %v:%v using %v as the data directory", host, port, datadir)
 	role = discover(host)
@@ -58,7 +62,7 @@ func main() {
 
 func discover(host string) string {
 	switch host {
-	case "meh-shard-0":
+	case leaderShard:
 		log.Printf("I am the leading shard, accepting both WRITES and READS")
 		return roleLeader
 	default:
@@ -71,15 +75,59 @@ func syncdata() {
 	if role == roleLeader {
 		return
 	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := "http://" + leaderShard + "/keys"
+	if local := os.Getenv("MEHDB_LOCAL"); local != "" {
+		url = "http://localhost:9999/keys"
+	}
 	for {
+		time.Sleep(10 * time.Second)
 		log.Printf("Checking for new data from leader")
-		time.Sleep(5 * time.Second)
+		// list keys
+		r, err := client.Get(url)
+		if err != nil {
+			log.Printf("Can't get keys from leader due to %v", err)
+			continue
+		}
+		keys := []string{}
+		err = json.NewDecoder(r.Body).Decode(&keys)
+		if err != nil {
+			log.Printf("Can't decode keys due to %v", err)
+		}
+		_ = r.Body.Close()
+		// for each key, get the data
+		for _, k := range keys {
+			keydir := filepath.Join(datadir, k)
+			if _, err = os.Stat(keydir); os.IsNotExist(err) {
+				_ = os.Mkdir(keydir, os.ModePerm)
+			}
+			kurl := "http://" + leaderShard + "/get/" + k
+			if local := os.Getenv("MEHDB_LOCAL"); local != "" {
+				kurl = "http://localhost:9999/get/" + k
+			}
+			r, err := client.Get(kurl)
+			if err != nil {
+				log.Printf("Can't get key %v from leader due to %v", k, err)
+				continue
+			}
+			c, err := ioutil.ReadAll(r.Body)
+			err = ioutil.WriteFile(filepath.Join(keydir, "content"), c, 0644)
+			if err != nil {
+				log.Printf("Can't sync key %v from leader due to %v", k, err)
+				continue
+			}
+			log.Printf("Synced key %v from leader", k)
+		}
 	}
 }
 
 func writedata(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
+	if role == roleFollower {
+		http.Redirect(w, r, "http://"+leaderShard+"/set/"+key, 307)
+		return
+	}
 	defer r.Body.Close()
 	c, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -97,6 +145,7 @@ func writedata(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Can't write key %s due to %v", key, err)
 		return
 	}
+	log.Printf("Done writing key %s", key)
 	fmt.Fprint(w, "WRITE completed")
 }
 
@@ -109,6 +158,7 @@ func readdata(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Can't read key %s due to %v", key, err)
 		return
 	}
+	log.Printf("Done reading key %s", key)
 	fmt.Fprint(w, string(c))
 }
 
@@ -126,10 +176,5 @@ func listkeys(w http.ResponseWriter, r *http.Request) {
 			klist = append(klist, k.Name())
 		}
 	}
-	// _ = json.NewEncoder(w).Encode(struct {
-	// 	Keys []string `json:"keys"`
-	// }{
-	// 	klist,
-	// })
 	_ = json.NewEncoder(w).Encode(klist)
 }
