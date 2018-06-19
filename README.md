@@ -38,7 +38,7 @@ Note: I tested it in OpenShift Online with Kubernetes in version 1.9.
 `/set/$KEY` … A HTTP `PUT` at this endpoint stores the payload provided under the key `$KEY`.
 
 
-`/status` … by default return `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns the number of keys it can serve or a `500` if the shard doesn't have data (yet), which can be used for a readiness probe.
+`/status` … by default return `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns the number of keys it can serve, which can be used for a readiness probe.
 
 
 ## Local development

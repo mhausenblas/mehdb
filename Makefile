@@ -1,4 +1,4 @@
-mehdb_version := 0.5
+mehdb_version := 0.6
 
 .PHONY: build clean
 

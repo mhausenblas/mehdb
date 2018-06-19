@@ -211,14 +211,8 @@ func status(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		switch knum {
-		case 0:
-			http.Error(w, "no data", http.StatusInternalServerError)
-			return
-		default:
-			_ = json.NewEncoder(w).Encode(knum)
-			return
-		}
+		_ = json.NewEncoder(w).Encode(knum)
+		return
 	default:
 		fmt.Fprint(w, role)
 		return
