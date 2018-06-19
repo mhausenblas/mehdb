@@ -19,10 +19,16 @@ $ curl mehdb:9876/get/test
 $ curl mehdb-1.mehdb:9876/get/test
 ```
 
+Scale:
+
+```bash
+$ kubectl scale sts web --replicas=3
+```
+
 Clean up:
 
 ```bash
-$ kubectl delete statefulset/mehdb
+$ kubectl delete sts/mehdb
 $ kubectl delete pvc/data-mehdb-0
 $ kubectl delete pvc/data-mehdb-1
 ```
