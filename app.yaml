@@ -28,7 +28,7 @@ spec:
           httpGet:
             path: /status
             port: 9876
-        readniessProbe:
+        readinessProbe:
           initialDelaySeconds: 15
           periodSeconds: 30
           httpGet:
