@@ -27,6 +27,20 @@ $ kubectl delete pvc/data-mehdb-0
 $ kubectl delete pvc/data-mehdb-1
 ```
 
+Note: I tested it in OpenShift Online with Kubernetes in version 1.9.
+
+## Endpoints
+
+
+`/get/$KEY` … A HTTP `GET` at this endpoint retrieves the payload available under the key `$KEY` or a `404` if it doesn't exist.
+
+
+`/set/$KEY` … A HTTP `PUT` at this endpoint stores the payload provided under the key `$KEY`.
+
+
+`/status` … by default return `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns the number of keys it can serve or a `500` if the shard doesn't have data (yet), which can be used for a readiness probe.
+
+
 ## Local development
 
 Run a leader shard like so:
