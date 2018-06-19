@@ -24,7 +24,7 @@ $ curl mehdb-1.mehdb:9876/get/test
 Scale to 3 shards (1 leader, 2 followers):
 
 ```bash
-$ kubectl scale sts web --replicas=3
+$ kubectl scale sts mehdb --replicas=4
 ```
 
 Clean up:
