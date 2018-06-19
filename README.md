@@ -36,15 +36,22 @@ $ kubectl delete pvc/data-mehdb-1
 $ kubectl delete svc/mehdb
 ```
 
-Note: I tested it in OpenShift Online with Kubernetes in version 1.9.
+Note: I tested it in OpenShift Online with Kubernetes in version 1.9 and the setup assumes that a storage class `ebs` exists.
 
-## Endpoints
+## API
+
+Once deployed you can use `mehdb` to store and retrieve data. Keep the following in mind:
+
+- The keys are restricted, that is, they must match `[a-z]+`. For example, `abc` is a valid key, `123` or `_mykey42` is not.
+- The leader shard accepts both reads and writes, a follower shard will redirect to the leader shard if you attempt a write operation.
+
+The following public endpoints are available:
 
 `/get/$KEY` … a HTTP `GET` at this endpoint retrieves the payload available under the key `$KEY` or a `404` if the key does not exist.
 
 `/set/$KEY` … a HTTP `PUT` at this endpoint stores the payload provided under the key `$KEY`.
 
-`/status` … by default returns a `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns a `2000` and the number of keys it can serve, which can be used for a readiness probe.
+`/status` … by default returns a `200` and the role (leader or follower), which can be used for a liveness probe, with `?level=full` it returns a `200` and the number of keys it can serve, which can be used for a readiness probe.
 
 ## Local development
 
