@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -40,7 +42,7 @@ func main() {
 		datadir = d
 	}
 	if _, err := os.Stat(datadir); os.IsNotExist(err) {
-		os.Mkdir(datadir, os.ModePerm)
+		_ = os.Mkdir(datadir, os.ModePerm)
 	}
 	log.Printf("mehdb serving from %v:%v using %v as the data directory", host, port, datadir)
 	role = discover(host)
@@ -48,6 +50,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/set/{key:[a-z]+}", writedata).Methods("PUT")
 	r.HandleFunc("/get/{key:[a-z]+}", readdata).Methods("GET")
+	r.HandleFunc("/keys", listkeys).Methods("GET")
 	http.Handle("/", r)
 	srv := &http.Server{Handler: r, Addr: "0.0.0.0:" + port}
 	log.Fatal(srv.ListenAndServe())
@@ -86,7 +89,7 @@ func writedata(w http.ResponseWriter, r *http.Request) {
 	}
 	keydir := filepath.Join(datadir, key)
 	if _, err = os.Stat(keydir); os.IsNotExist(err) {
-		os.Mkdir(keydir, os.ModePerm)
+		_ = os.Mkdir(keydir, os.ModePerm)
 	}
 	err = ioutil.WriteFile(filepath.Join(keydir, "content"), c, 0644)
 	if err != nil {
@@ -107,4 +110,26 @@ func readdata(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, string(c))
+}
+
+func listkeys(w http.ResponseWriter, r *http.Request) {
+	keys, err := ioutil.ReadDir(datadir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Can't list keys due to %v", err)
+		return
+	}
+	klist := []string{}
+	for _, k := range keys {
+		key := k.Name()
+		if !strings.HasPrefix(key, ".") {
+			klist = append(klist, k.Name())
+		}
+	}
+	// _ = json.NewEncoder(w).Encode(struct {
+	// 	Keys []string `json:"keys"`
+	// }{
+	// 	klist,
+	// })
+	_ = json.NewEncoder(w).Encode(klist)
 }
