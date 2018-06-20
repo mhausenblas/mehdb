@@ -14,7 +14,7 @@ $ kubectl -n=mehdb apply -f app.yaml
 Access it from within the cluster:
 
 ```
-$ kubectl run -i -t --rm jumpod --restart=Never --image=quay.io/mhausenblas/jump:0.2 -- sh
+$ kubectl -n=mehdb run -i -t --rm jumpod --restart=Never --image=quay.io/mhausenblas/jump:0.2 -- sh
 $ echo "test data" > /tmp/test
 $ curl -L -XPUT -T /tmp/test mehdb:9876/set/test
 $ curl mehdb:9876/get/test
@@ -24,16 +24,16 @@ $ curl mehdb-1.mehdb:9876/get/test
 Scale to 3 shards (1 leader, 2 followers):
 
 ```bash
-$ kubectl scale sts mehdb --replicas=4
+$ kubectl -n=mehdb scale sts mehdb --replicas=4
 ```
 
 Clean up:
 
 ```bash
-$ kubectl delete sts/mehdb
-$ kubectl delete pvc/data-mehdb-0
-$ kubectl delete pvc/data-mehdb-1
-$ kubectl delete svc/mehdb
+$ kubectl -n=mehdb delete sts/mehdb
+$ kubectl -n=mehdb delete pvc/data-mehdb-0
+$ kubectl -n=mehdb delete pvc/data-mehdb-1
+$ kubectl -n=mehdb delete svc/mehdb
 ```
 
 Note: I tested it in OpenShift Online with Kubernetes in version 1.9 and the setup assumes that a storage class `ebs` exists.
