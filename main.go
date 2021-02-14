@@ -221,9 +221,8 @@ func status(w http.ResponseWriter, r *http.Request) {
 
 func currentns() string {
 	ns := "default"
-	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
-		currentns, _ := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		ns = string(currentns)
+	if n := os.Getenv("MEHDB_NAMESPACE"); n != "" {
+		ns = n
 	}
 	return ns
 }
